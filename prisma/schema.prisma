@@ -1,0 +1,997 @@
+// AIONIX GEAR — modelo de dados
+//
+// Convenções:
+// - Todo dado de negócio pertence a uma Organization (orgId) e só é lido/escrito
+//   através da camada de domínio, que sempre filtra por orgId.
+// - Valores monetários são inteiros em centavos (BRL). Custo desconhecido é NULL
+//   com costStatus = UNKNOWN — nunca zero.
+// - Histórico é append-only: ItemEvent, CostEntry, MoneyTransaction, ResultEntry e
+//   Settlement nunca são apagados; correções geram lançamentos de estorno.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Identidade e organização ─────────────────────────────
+
+enum Role {
+  OWNER
+  ADMIN
+  SALES
+  INVENTORY
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String
+  passwordHash    String?
+  isPlatformAdmin Boolean   @default(false)
+  disabledAt      DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  memberships Membership[]
+  sessions    Session[]
+  setupTokens SetupToken[]
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  tokenHash   String   @unique
+  userId      String
+  activeOrgId String?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  expiresAt   DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Link de uso único para definir/redefinir senha (sem e-mail: o link é entregue pelo administrador).
+model SetupToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  purpose   String // SETUP | RESET
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  key       String
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
+model Organization {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  legalName   String?
+  document    String?
+  phone       String?
+  email       String?
+  city        String?
+  state       String?
+  timezone    String    @default("America/Belem")
+  currency    String    @default("BRL")
+  plan        String    @default("founder")
+  isDemo      Boolean   @default(false)
+  settings    Json      @default("{}")
+  onboardedAt DateTime?
+  suspendedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  memberships Membership[]
+  invitations Invitation[]
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  role      Role
+  createdAt DateTime @default(now())
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([userId])
+}
+
+model Invitation {
+  id          String    @id @default(cuid())
+  orgId       String
+  email       String
+  name        String?
+  role        Role
+  tokenHash   String    @unique
+  invitedById String?
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+/// Numeração sequencial legível por organização (ex.: itens GX-0001, vendas V-0001).
+model Counter {
+  orgId String
+  key   String
+  value Int    @default(0)
+
+  @@id([orgId, key])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  orgId      String?
+  userId     String?
+  action     String
+  entityType String?
+  entityId   String?
+  summary    String
+  data       Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([orgId, createdAt])
+  @@index([orgId, entityType, entityId])
+}
+
+/// Protege contra envio duplicado de formulários (duplo clique, reenvio de rede).
+model IdempotencyKey {
+  orgId     String
+  key       String
+  result    Json?
+  createdAt DateTime @default(now())
+
+  @@id([orgId, key])
+}
+
+model SavedView {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String?
+  module    String
+  name      String
+  query     String
+  createdAt DateTime @default(now())
+
+  @@index([orgId, module])
+}
+
+// ───────────────────────────── Estoque ─────────────────────────────
+
+enum CategoryKind {
+  CPU
+  GPU
+  MOTHERBOARD
+  RAM
+  STORAGE
+  PSU
+  CASE
+  COOLER
+  MONITOR
+  PERIPHERAL
+  NETWORK
+  NOTEBOOK
+  PC
+  CONSOLE
+  CONSUMABLE
+  OTHER
+}
+
+model Category {
+  id        String       @id @default(cuid())
+  orgId     String
+  name      String
+  kind      CategoryKind
+  archived  Boolean      @default(false)
+  createdAt DateTime     @default(now())
+
+  products Product[]
+
+  @@unique([orgId, name])
+}
+
+enum LocationKind {
+  ROOM
+  SHELF
+  DRAWER
+  BOX
+  STORAGE
+  WAREHOUSE
+  EXTERNAL
+  OTHER
+}
+
+model Location {
+  id          String       @id @default(cuid())
+  orgId       String
+  parentId    String?
+  name        String
+  code        String?
+  kind        LocationKind @default(OTHER)
+  description String?
+  archived    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+
+  parent   Location?  @relation("LocationTree", fields: [parentId], references: [id])
+  children Location[] @relation("LocationTree")
+  items    Item[]
+
+  @@index([orgId])
+}
+
+enum TrackingMode {
+  UNIT
+  LOT
+}
+
+/// Modelo/catálogo (ex.: "MSI RTX 3060 Ventus 12GB"). Unidades físicas são Items.
+model Product {
+  id         String       @id @default(cuid())
+  orgId      String
+  categoryId String
+  brand      String?
+  model      String?
+  name       String
+  specs      Json         @default("{}")
+  tracking   TrackingMode @default(UNIT)
+  archived   Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id])
+  items    Item[]
+
+  @@index([orgId, name])
+}
+
+enum ItemStatus {
+  AVAILABLE // Disponível
+  RESERVED // Reservado (orçamento/venda pendente)
+  INSPECTION // Aguardando inspeção/teste
+  DEFECTIVE // Com defeito
+  IN_BUILD // Em montagem
+  IN_NEGOTIATION // Em negociação (catira em andamento)
+  CONSIGNED_OUT // Consignado com terceiro
+  INSTALLED // Instalado dentro de um PC montado
+  SOLD // Vendido, aguardando entrega
+  DELIVERED // Vendido e entregue
+  RETURNED // Devolvido pelo cliente, aguardando avaliação
+  EXCHANGED // Saiu em uma catira
+  DISASSEMBLED // PC desmontado (componentes voltaram ao estoque)
+  DISPOSED // Baixado (descarte, perda, uso próprio)
+  VOID // Anulado (origem estornada: catira/importação cancelada)
+}
+
+enum Ownership {
+  OWNED // Próprio
+  CONSIGNED_IN // Consignado de terceiro (vendo por conta dele)
+  CLIENT // Equipamento de cliente
+  THIRD_PARTY // Outro item de terceiro sob minha guarda
+}
+
+enum ItemCondition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  FOR_PARTS
+}
+
+enum CostStatus {
+  KNOWN
+  ESTIMATED
+  UNKNOWN
+}
+
+enum AcquisitionType {
+  PURCHASE
+  TRADE
+  TRADE_IN
+  BUILD
+  DISASSEMBLY
+  MIGRATION
+  IMPORT
+  CONSIGNMENT
+  CLIENT
+  OTHER
+}
+
+model Item {
+  id                   String          @id @default(cuid())
+  orgId                String
+  code                 String
+  productId            String
+  title                String
+  serial               String?
+  status               ItemStatus      @default(AVAILABLE)
+  ownership            Ownership       @default(OWNED)
+  ownerContactId       String?
+  condition            ItemCondition   @default(GOOD)
+  defects              String?
+  completeness         Json            @default("{}")
+  accessories          String?
+  specs                Json            @default("{}")
+  tracking             TrackingMode    @default(UNIT)
+  qtyInitial           Int             @default(1)
+  qtyOnHand            Int             @default(1)
+  qtyReserved          Int             @default(0)
+  /// Custo unitário de carregamento, em centavos. NULL quando desconhecido.
+  unitCostCents        Int?
+  costStatus           CostStatus      @default(KNOWN)
+  expectedPriceCents   Int?
+  minPriceCents        Int?
+  estimatedValueCents  Int?
+  estimatedValueNote   String?
+  estimatedValueAt     DateTime?
+  warrantyUntil        DateTime?
+  warrantyNotes        String?
+  locationId           String?
+  acquisitionType      AcquisitionType @default(PURCHASE)
+  acquiredAt           DateTime        @default(now())
+  sourcePurchaseLineId String?
+  sourceTradeId        String?
+  sourceSaleId         String?
+  sourceBuildId        String?
+  sourceDisassemblyId  String?
+  importBatchId        String?
+  parentItemId         String?
+  holdType             String? // SALE | BUILD | TRADE
+  holdId               String?
+  holdUntil            DateTime?
+  tags                 String[]        @default([])
+  notes                String?
+  version              Int             @default(0)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  exitedAt             DateTime?
+
+  product  Product     @relation(fields: [productId], references: [id])
+  location Location?   @relation(fields: [locationId], references: [id])
+  owner    Contact?    @relation("ItemOwner", fields: [ownerContactId], references: [id])
+  parent   Item?       @relation("ItemTree", fields: [parentItemId], references: [id])
+  children Item[]      @relation("ItemTree")
+  events   ItemEvent[]
+  costs    CostEntry[]
+
+  @@unique([orgId, code])
+  @@index([orgId, status])
+  @@index([orgId, serial])
+  @@index([orgId, productId])
+  @@index([orgId, locationId])
+  @@index([parentItemId])
+}
+
+model ItemEvent {
+  id             String      @id @default(cuid())
+  orgId          String
+  itemId         String
+  type           String
+  message        String
+  fromStatus     ItemStatus?
+  toStatus       ItemStatus?
+  fromLocationId String?
+  toLocationId   String?
+  qtyDelta       Int?
+  refType        String?
+  refId          String?
+  reason         String?
+  userId         String?
+  data           Json?
+  createdAt      DateTime    @default(now())
+
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@index([orgId, itemId, createdAt])
+  @@index([orgId, refType, refId])
+}
+
+/// Componentes do custo de um item (ou lote). Append-only.
+model CostEntry {
+  id          String   @id @default(cuid())
+  orgId       String
+  itemId      String
+  kind        String // ACQUISITION, FREIGHT, FEE, COMMISSION, REPAIR, TESTING, PARTS, TRADE_ALLOCATION, BUILD_ROLLUP, DISASSEMBLY_ALLOCATION, ADJUSTMENT, OTHER
+  amountCents Int
+  description String
+  refType     String?
+  refId       String?
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@index([orgId, itemId])
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  orgId        String
+  entityType   String
+  entityId     String
+  kind         String   @default("PHOTO") // PHOTO | DOCUMENT | RECEIPT
+  storage      String // blob | db
+  storageKey   String
+  fileName     String
+  contentType  String
+  sizeBytes    Int
+  isCover      Boolean  @default(false)
+  caption      String?
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  data AttachmentData?
+
+  @@index([orgId, entityType, entityId])
+}
+
+model AttachmentData {
+  attachmentId String @id
+  bytes        Bytes
+
+  attachment Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+}
+
+model Note {
+  id         String   @id @default(cuid())
+  orgId      String
+  entityType String
+  entityId   String
+  body       String
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  @@index([orgId, entityType, entityId])
+}
+
+// Inventário físico (contagem)
+model StockCount {
+  id          String    @id @default(cuid())
+  orgId       String
+  code        String
+  name        String
+  locationId  String?
+  status      String    @default("OPEN") // OPEN | CLOSED | CANCELLED
+  notes       String?
+  createdById String?
+  startedAt   DateTime  @default(now())
+  closedAt    DateTime?
+
+  lines StockCountLine[]
+
+  @@unique([orgId, code])
+}
+
+model StockCountLine {
+  id                 String    @id @default(cuid())
+  orgId              String
+  countId            String
+  itemId             String?
+  scannedCode        String?
+  expectedLocationId String?
+  foundLocationId    String?
+  expectedQty        Int       @default(0)
+  countedQty         Int?
+  result             String    @default("PENDING") // PENDING | FOUND | MISSING | WRONG_LOCATION | QTY_DIFF | UNEXPECTED
+  resolution         String? // MOVED | ADJUSTED | KEPT | IGNORED
+  resolutionNote     String?
+  updatedAt          DateTime  @updatedAt
+  resolvedAt         DateTime?
+
+  count StockCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+
+  @@unique([countId, itemId])
+  @@index([orgId, countId])
+}
+
+model ImportBatch {
+  id           String    @id @default(cuid())
+  orgId        String
+  fileName     String
+  status       String    @default("APPLIED") // APPLIED | REVERTED
+  rowCount     Int
+  createdCount Int
+  warnings     Json      @default("[]")
+  createdById  String?
+  createdAt    DateTime  @default(now())
+  revertedAt   DateTime?
+}
+
+// ───────────────────────────── Pessoas ─────────────────────────────
+
+model Contact {
+  id           String    @id @default(cuid())
+  orgId        String
+  name         String
+  isCustomer   Boolean   @default(false)
+  isSupplier   Boolean   @default(false)
+  phone        String?
+  whatsapp     String?
+  email        String?
+  document     String?
+  city         String?
+  state        String?
+  instagram    String?
+  notes        String?
+  tags         String[]  @default([])
+  archived     Boolean   @default(false)
+  anonymizedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  ownedItems Item[] @relation("ItemOwner")
+
+  @@index([orgId, name])
+}
+
+// ───────────────────────────── Compras ─────────────────────────────
+
+model Purchase {
+  id            String    @id @default(cuid())
+  orgId         String
+  code          String
+  contactId     String?
+  status        String    @default("DRAFT") // DRAFT | CONFIRMED | CANCELLED
+  date          DateTime  @default(now())
+  channel       String?
+  subtotalCents Int       @default(0)
+  discountCents Int       @default(0)
+  extrasCents   Int       @default(0)
+  totalCents    Int       @default(0)
+  notes         String?
+  createdById   String?
+  confirmedAt   DateTime?
+  cancelledAt   DateTime?
+  cancelReason  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  lines  PurchaseLine[]
+  extras PurchaseExtra[]
+
+  @@unique([orgId, code])
+  @@index([orgId, date])
+}
+
+model PurchaseLine {
+  id                 String        @id @default(cuid())
+  orgId              String
+  purchaseId         String
+  productId          String
+  description        String
+  quantity           Int
+  unitPriceCents     Int
+  tracking           TrackingMode  @default(UNIT)
+  condition          ItemCondition @default(GOOD)
+  locationId         String?
+  serials            String[]      @default([])
+  expectedPriceCents Int?
+  notes              String?
+  allocatedCents     Int?
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+}
+
+model PurchaseExtra {
+  id          String @id @default(cuid())
+  orgId       String
+  purchaseId  String
+  kind        String // FREIGHT | FEE | COMMISSION | REPAIR | TESTING | OTHER
+  description String
+  amountCents Int
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+}
+
+// ───────────────────────────── Vendas ─────────────────────────────
+
+model Sale {
+  id                   String    @id @default(cuid())
+  orgId                String
+  code                 String
+  contactId            String?
+  status               String    @default("QUOTE") // QUOTE | CONFIRMED | CANCELLED
+  channel              String?
+  quoteValidUntil      DateTime?
+  reserveItems         Boolean   @default(false)
+  date                 DateTime  @default(now())
+  subtotalCents        Int       @default(0)
+  discountCents        Int       @default(0)
+  shippingChargedCents Int       @default(0)
+  shippingCostCents    Int       @default(0)
+  feeCents             Int       @default(0)
+  tradeInCents         Int       @default(0)
+  totalCents           Int       @default(0)
+  deliveryStatus       String    @default("PENDING") // PENDING | DELIVERED
+  deliveredAt          DateTime?
+  warrantyDays         Int?
+  notes                String?
+  afterSalesNotes      String?
+  shareToken           String?   @unique
+  opportunityId        String?
+  createdById          String?
+  confirmedAt          DateTime?
+  cancelledAt          DateTime?
+  cancelReason         String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  lines   SaleLine[]
+  returns SaleReturn[]
+
+  @@unique([orgId, code])
+  @@index([orgId, status, date])
+}
+
+model SaleLine {
+  id             String      @id @default(cuid())
+  orgId          String
+  saleId         String
+  itemId         String
+  description    String
+  quantity       Int         @default(1)
+  unitPriceCents Int
+  costCents      Int?
+  costStatus     CostStatus?
+  returnedQty    Int         @default(0)
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, itemId])
+}
+
+model SaleReturn {
+  id          String   @id @default(cuid())
+  orgId       String
+  saleId      String
+  date        DateTime @default(now())
+  reason      String
+  refundCents Int
+  itemStatus  String // RETURNED | AVAILABLE | DEFECTIVE
+  lines       Json
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  sale Sale @relation(fields: [saleId], references: [id])
+}
+
+// ───────────────────────────── Catiras ─────────────────────────────
+
+model Trade {
+  id           String    @id @default(cuid())
+  orgId        String
+  code         String
+  contactId    String?
+  title        String
+  status       String    @default("DRAFT") // DRAFT | NEGOTIATING | CONFIRMED | CANCELLED
+  date         DateTime  @default(now())
+  cashInCents  Int       @default(0)
+  cashOutCents Int       @default(0)
+  feesCents    Int       @default(0)
+  notes        String?
+  valuation    Json?
+  createdById  String?
+  confirmedAt  DateTime?
+  cancelledAt  DateTime?
+  cancelReason String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  outLines  TradeOutLine[]
+  inLines   TradeInLine[]
+  revisions TradeRevision[]
+
+  @@unique([orgId, code])
+}
+
+model TradeOutLine {
+  id                  String      @id @default(cuid())
+  orgId               String
+  tradeId             String
+  itemId              String
+  quantity            Int         @default(1)
+  agreedValueCents    Int
+  estimatedValueCents Int?
+  costCents           Int?
+  costStatus          CostStatus?
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+}
+
+model TradeInLine {
+  id                  String        @id @default(cuid())
+  orgId               String
+  tradeId             String
+  productId           String?
+  categoryId          String
+  title               String
+  brand               String?
+  model               String?
+  serial              String?
+  condition           ItemCondition @default(GOOD)
+  conditionReport     String?
+  specs               Json          @default("{}")
+  quantity            Int           @default(1)
+  agreedValueCents    Int
+  estimatedValueCents Int?
+  expectedPriceCents  Int?
+  locationId          String?
+  allocatedCostCents  Int?
+  createdItemId       String?
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+}
+
+model TradeRevision {
+  id        String   @id @default(cuid())
+  orgId     String
+  tradeId   String
+  number    Int
+  author    String // US | THEM
+  note      String?
+  snapshot  Json
+  userId    String?
+  createdAt DateTime @default(now())
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+}
+
+// ───────────────────────────── Montagens ─────────────────────────────
+
+model Build {
+  id               String    @id @default(cuid())
+  orgId            String
+  code             String
+  name             String
+  purpose          String    @default("SALE") // SALE | CUSTOMER_ORDER
+  contactId        String?
+  status           String    @default("PLANNING") // PLANNING | ASSEMBLING | TESTING | COMPLETED | CANCELLED
+  ownLaborCents    Int       @default(0)
+  targetPriceCents Int?
+  warrantyDays     Int?
+  description      String?
+  testNotes        String?
+  benchmarks       String?
+  notes            String?
+  resultItemId     String?
+  createdById      String?
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+  cancelReason     String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  parts    BuildPart[]
+  expenses BuildExpense[]
+
+  @@unique([orgId, code])
+}
+
+model BuildPart {
+  id            String    @id @default(cuid())
+  orgId         String
+  buildId       String
+  itemId        String
+  quantity      Int       @default(1)
+  role          String?
+  costCents     Int?
+  status        String    @default("ACTIVE") // ACTIVE | REMOVED
+  removedReason String?
+  addedAt       DateTime  @default(now())
+  removedAt     DateTime?
+
+  build Build @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, itemId])
+}
+
+model BuildExpense {
+  id            String   @id @default(cuid())
+  orgId         String
+  buildId       String
+  kind          String // LABOR | CONSUMABLE | TESTING | PARTS | OTHER
+  description   String
+  amountCents   Int
+  paymentMode   String // PAID | PAYABLE
+  accountId     String?
+  transactionId String?
+  titleId       String?
+  createdAt     DateTime @default(now())
+
+  build Build @relation(fields: [buildId], references: [id], onDelete: Cascade)
+}
+
+model Disassembly {
+  id              String   @id @default(cuid())
+  orgId           String
+  code            String
+  sourceItemId    String
+  method          String // ORIGINAL_COST | BY_VALUE
+  sourceCostCents Int?
+  writeOffCents   Int      @default(0)
+  allocation      Json
+  notes           String?
+  createdById     String?
+  createdAt       DateTime @default(now())
+
+  @@unique([orgId, code])
+}
+
+// ───────────────────────────── Negociações ─────────────────────────────
+
+model Opportunity {
+  id           String    @id @default(cuid())
+  orgId        String
+  contactId    String?
+  title        String
+  type         String    @default("SELL") // SELL | BUY | TRADE | BUILD
+  stage        String    @default("NEW") // NEW | NEGOTIATING | PROPOSAL | WON | LOST
+  valueCents   Int?
+  itemIds      String[]  @default([])
+  source       String?
+  nextAction   String?
+  nextActionAt DateTime?
+  notes        String?
+  lostReason   String?
+  linkType     String?
+  linkId       String?
+  closedAt     DateTime?
+  createdById  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([orgId, stage])
+}
+
+// ───────────────────────────── Financeiro ─────────────────────────────
+
+model MoneyAccount {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  kind      String   @default("BANK") // CASH | BANK | DIGITAL | OTHER
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  transactions MoneyTransaction[]
+
+  @@unique([orgId, name])
+}
+
+model FinanceCategory {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  type      String // INCOME | EXPENSE
+  group     String // OPERATING_EXPENSE | SALES_EXPENSE | OTHER_INCOME | OTHER_EXPENSE | CAPITAL | SYSTEM
+  systemKey String?
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([orgId, name])
+}
+
+/// Obrigação a receber ou a pagar (inclui parcelas). O pagamento é registrado em Settlement.
+model Title {
+  id               String    @id @default(cuid())
+  orgId            String
+  direction        String // RECEIVABLE | PAYABLE
+  contactId        String?
+  description      String
+  amountCents      Int
+  settledCents     Int       @default(0)
+  dueDate          DateTime
+  status           String    @default("OPEN") // OPEN | PARTIAL | PAID | CANCELLED
+  installmentNo    Int?
+  installmentCount Int?
+  method           String?
+  sourceType       String // SALE | PURCHASE | TRADE | EXPENSE | BUILD | MANUAL
+  sourceId         String?
+  categoryId       String?
+  cancelledAt      DateTime?
+  cancelReason     String?
+  createdAt        DateTime  @default(now())
+
+  settlements Settlement[]
+
+  @@index([orgId, direction, status, dueDate])
+  @@index([orgId, sourceType, sourceId])
+}
+
+model Settlement {
+  id            String   @id @default(cuid())
+  orgId         String
+  titleId       String
+  amountCents   Int
+  kind          String // PAYMENT | TRADE_IN | CANCELLATION
+  transactionId String?
+  date          DateTime @default(now())
+  note          String?
+  reversalOfId  String?  @unique
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  title Title @relation(fields: [titleId], references: [id])
+
+  @@index([orgId, titleId])
+}
+
+/// Dinheiro que efetivamente entrou ou saiu de uma conta. Append-only; estorno = lançamento oposto.
+model MoneyTransaction {
+  id              String   @id @default(cuid())
+  orgId           String
+  accountId       String
+  direction       String // IN | OUT
+  amountCents     Int
+  date            DateTime @default(now())
+  kind            String
+  method          String?
+  categoryId      String?
+  contactId       String?
+  description     String
+  refType         String?
+  refId           String?
+  reversalOfId    String?  @unique
+  transferGroupId String?
+  createdById     String?
+  createdAt       DateTime @default(now())
+
+  account MoneyAccount @relation(fields: [accountId], references: [id])
+
+  @@index([orgId, date])
+  @@index([orgId, accountId])
+  @@index([orgId, refType, refId])
+}
+
+/// Livro de resultado gerencial (competência). Toda linha do DRE vem daqui. Append-only.
+model ResultEntry {
+  id           String      @id @default(cuid())
+  orgId        String
+  date         DateTime
+  kind         String // REVENUE | COGS | SALES_EXPENSE | OPERATING_EXPENSE | OTHER_INCOME | OTHER_EXPENSE
+  amountCents  Int
+  description  String
+  refType      String?
+  refId        String?
+  itemId       String?
+  saleId       String?
+  tradeId      String?
+  buildId      String?
+  contactId    String?
+  categoryId   String?
+  costStatus   CostStatus?
+  reversalOfId String?     @unique
+  createdById  String?
+  createdAt    DateTime    @default(now())
+
+  @@index([orgId, date])
+  @@index([orgId, kind, date])
+  @@index([orgId, itemId])
+  @@index([orgId, saleId])
+}
