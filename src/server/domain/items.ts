@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Tx } from "../db";
-import { requirePerm, withIdempotency, withTx, type Ctx } from "../context";
+import { requirePerm, hasPerm, withIdempotency, withTx, type Ctx } from "../context";
 import { DomainError, NotFoundError, ConflictError, assert } from "../errors";
 import {
   audit,
@@ -10,6 +10,7 @@ import {
   STATUS_LABEL,
   adjustLotQty,
   transitionUnits,
+  syncInstalledChildren,
 } from "./shared";
 import { applyPaymentPlan, PAYMENT_METHODS } from "./finance";
 import { systemCategoryId } from "./org";
@@ -704,6 +705,7 @@ export async function disposeItemTx(tx: Tx, ctx: Ctx, input: z.infer<typeof disp
     await adjustLotQty(tx, ctx, it.id, { onHand: -qty });
   } else {
     await transitionUnits(tx, ctx, [it.id], allowedFrom, "DISPOSED", { exitedAt: date, holdType: null, holdId: null, qtyOnHand: 0 });
+    await syncInstalledChildren(tx, ctx, [it.id], date);
   }
   const label = DISPOSAL_REASONS[input.reasonKind];
   const lossCents = it.ownership === "OWNED" && it.unitCostCents !== null ? it.unitCostCents * qty : 0;
@@ -816,7 +818,22 @@ export async function bulkSetPrice(ctx: Ctx, input: { itemIds: string[]; mode: "
 
 export async function addNote(ctx: Ctx, input: { entityType: string; entityId: string; body: string }) {
   assert(input.body?.trim().length > 0, "Escreva a anotação.");
+  const NOTE_PERMS: Record<string, Parameters<typeof requirePerm>[1]> = {
+    Item: "inventory.view",
+    Contact: "contacts.manage",
+    Sale: "sales.manage",
+    Trade: "trades.manage",
+    Build: "builds.manage",
+    Purchase: "purchases.manage",
+  };
+  const perm = NOTE_PERMS[input.entityType];
+  assert(perm, "Tipo de anotação inválido.");
+  if (!(input.entityType === "Contact" && (hasPerm(ctx, "purchases.manage") || hasPerm(ctx, "trades.manage")))) requirePerm(ctx, perm);
   return withTx(async (tx) => {
+    if (input.entityType === "Contact") {
+      const c = await tx.contact.findFirst({ where: { id: input.entityId, orgId: ctx.orgId } });
+      if (!c) throw new NotFoundError("Contato");
+    }
     const note = await tx.note.create({
       data: { orgId: ctx.orgId, entityType: input.entityType, entityId: input.entityId, body: input.body.trim().slice(0, 4000), userId: ctx.userId },
     });

@@ -140,6 +140,18 @@ export async function transitionUnits(
   }
 }
 
+/**
+ * Componentes instalados acompanham o PC: quando o PC sai fisicamente do estoque
+ * (entregue, trocado, baixado), eles saem junto; quando o PC volta, voltam junto.
+ */
+export async function syncInstalledChildren(tx: Tx, ctx: Ctx, parentIds: string[], exitedAt: Date | null) {
+  if (!parentIds.length) return;
+  await tx.item.updateMany({
+    where: { orgId: ctx.orgId, parentItemId: { in: parentIds }, status: "INSTALLED" },
+    data: { qtyOnHand: exitedAt ? 0 : 1, exitedAt },
+  });
+}
+
 /** Movimenta quantidade de lotes com checagem no banco (CHECK item_qty_nonneg). */
 export async function adjustLotQty(
   tx: Tx,

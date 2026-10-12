@@ -11,6 +11,7 @@ import {
   transitionUnits,
   adjustLotQty,
   STATUS_LABEL,
+  syncInstalledChildren,
 } from "./shared";
 import { ensureProduct, insertItem } from "./items";
 import {
@@ -286,6 +287,7 @@ async function confirmSaleTx(tx: Tx, ctx: Ctx, saleId: string, lines: LoadedLine
         exitedAt: input.delivered ? input.date : null,
         qtyOnHand: input.delivered ? 0 : 1,
       });
+      if (input.delivered) await syncInstalledChildren(tx, ctx, [fresh.id], input.date);
     } else {
       // Lote: a reserva deste orçamento já foi liberada na edição; baixa direta do saldo livre.
       await adjustLotQty(tx, ctx, fresh.id, { onHand: -l.quantity });
@@ -553,7 +555,7 @@ export async function markDelivered(ctx: Ctx, input: { saleId: string; date?: Da
     }
     await transitionUnits(tx, ctx, units, ["SOLD"], "DELIVERED", { exitedAt: date, qtyOnHand: 0 });
     for (const id of units) {
-      await tx.item.updateMany({ where: { orgId: ctx.orgId, parentItemId: id }, data: { qtyOnHand: 0, exitedAt: date } });
+      await syncInstalledChildren(tx, ctx, [id], date);
       await itemEvent(tx, ctx, { itemId: id, type: "DELIVERED", message: `Entregue ao cliente (venda ${sale.code})`, fromStatus: "SOLD", toStatus: "DELIVERED", refType: "SALE", refId: sale.id });
     }
     await tx.sale.update({ where: { id: sale.id }, data: { deliveryStatus: "DELIVERED", deliveredAt: date } });
@@ -601,7 +603,7 @@ export async function cancelSale(ctx: Ctx, input: { saleId: string; reason: stri
       const it = await tx.item.findUniqueOrThrow({ where: { id: line.itemId } });
       if (it.tracking === "UNIT") {
         await transitionUnits(tx, ctx, [it.id], ["SOLD", "DELIVERED"], "AVAILABLE", { exitedAt: null, qtyOnHand: 1 });
-        await tx.item.updateMany({ where: { orgId: ctx.orgId, parentItemId: it.id }, data: { qtyOnHand: 1, exitedAt: null } });
+        await syncInstalledChildren(tx, ctx, [it.id], null);
       } else {
         await adjustLotQty(tx, ctx, it.id, { onHand: line.quantity });
       }
@@ -702,7 +704,7 @@ export async function returnSale(ctx: Ctx, raw: z.input<typeof returnSchema>) {
       const it = await tx.item.findUniqueOrThrow({ where: { id: a.line.itemId } });
       if (it.tracking === "UNIT") {
         await transitionUnits(tx, ctx, [it.id], ["SOLD", "DELIVERED"], input.itemStatus, { exitedAt: null, qtyOnHand: 1, holdType: null, holdId: null });
-        await tx.item.updateMany({ where: { orgId: ctx.orgId, parentItemId: it.id }, data: { qtyOnHand: 1, exitedAt: null } });
+        await syncInstalledChildren(tx, ctx, [it.id], null);
       } else {
         await adjustLotQty(tx, ctx, it.id, { onHand: a.qty });
       }

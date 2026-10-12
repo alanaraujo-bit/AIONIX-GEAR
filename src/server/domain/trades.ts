@@ -12,6 +12,7 @@ import {
   adjustLotQty,
   combineCostStatus,
   STATUS_LABEL,
+  syncInstalledChildren,
 } from "./shared";
 import { ensureProduct, insertItem } from "./items";
 import { applyPaymentPlan, unwindSourceFinance, PAYMENT_METHODS, accountBalances } from "./finance";
@@ -441,6 +442,7 @@ export async function confirmTrade(ctx: Ctx, raw: z.input<typeof confirmTradeSch
           exitedAt: trade.date,
           qtyOnHand: 0,
         });
+        await syncInstalledChildren(tx, ctx, [it.id], trade.date);
       } else {
         await adjustLotQty(tx, ctx, it.id, { onHand: -l.quantity, reserved: wasNegotiating ? -l.quantity : 0 });
       }
@@ -631,6 +633,7 @@ export async function cancelTrade(ctx: Ctx, input: { tradeId: string; reason: st
       const it = await tx.item.findUniqueOrThrow({ where: { id: l.itemId } });
       if (it.tracking === "UNIT") {
         await transitionUnits(tx, ctx, [it.id], ["EXCHANGED"], "AVAILABLE", { exitedAt: null, qtyOnHand: 1 });
+        await syncInstalledChildren(tx, ctx, [it.id], null);
       } else {
         await adjustLotQty(tx, ctx, it.id, { onHand: l.quantity });
       }
