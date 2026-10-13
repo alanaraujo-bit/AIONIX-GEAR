@@ -42,6 +42,9 @@ export function assert(condition: unknown, message: string, code = "DOMAIN"): as
 export function translateDbError(err: unknown): unknown {
   const e = err as { code?: string; message?: string; meta?: { constraint?: string; code?: string; message?: string }; cause?: unknown };
   const text = `${e?.message ?? ""} ${JSON.stringify(e?.meta ?? {})}`;
+  if (/out of range for type integer|value out of range|integer out of range/i.test(text)) {
+    return new DomainError("Valor acima do limite permitido (máximo R$ 9.999.999,99 por campo).", "VALIDATION");
+  }
   if (text.includes("item_qty_nonneg")) return new ConflictError("Quantidade insuficiente em estoque para esta operação.");
   if (text.includes("buildpart_active_unit")) return new ConflictError("Esta unidade já está em outra montagem.");
   if (text.includes("title_amounts")) return new ConflictError("O valor informado ultrapassa o saldo em aberto.");
