@@ -47,7 +47,7 @@ Navegador (PWA) ──HTTPS──> Vercel (Next.js 16, funções Node)
 
 ### Banco (Railway)
 
-1. Projeto `aionix-gear`, serviço `Postgres`. Ele precisa estar com deploy ativo.
+1. Projeto `aionix-gear`, serviço `Postgres`. Ele precisa estar com deploy ativo. O sistema usa o banco **`aionix_gear`** desse servidor (URL pública do proxy terminando em `/aionix_gear`). O banco padrão `railway` guarda dados de uma versão anterior e não é usado.
 2. Faça um backup antes (se já houver dados): ver [BACKUP.md](BACKUP.md).
 3. Aplique as migrações:
    `DATABASE_URL="<url pública do Railway>" npx prisma migrate deploy`
