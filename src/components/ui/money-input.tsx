@@ -48,7 +48,7 @@ export function MoneyInput({ value, onChange, id, name, placeholder = "0,00", di
         className="num h-full w-full min-w-0 bg-transparent pr-3 text-right text-[0.9375rem] text-ink outline-none placeholder:text-ink-3"
         value={value === null ? "" : format(value)}
         onChange={(e) => {
-          const digits = e.target.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 11);
+          const digits = e.target.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9); // até R$ 9.999.999,99
           onChange(digits ? Number(digits) : null);
         }}
         onFocus={(e) => {
