@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DownloadLink } from "@/components/ui/download-link";
 import Link from "next/link";
 import { CircleCheck, CircleAlert, Download } from "lucide-react";
 import { requirePage } from "@/server/session";
@@ -89,7 +90,7 @@ async function ResultTab({ app, p, period }: { app: App; p: ReturnType<typeof re
   const delta = (a: number, b?: number | null) => (b === null || b === undefined || b === 0 ? null : `${a >= b ? "▲" : "▼"} ${formatPct(Math.abs(((a - b) / Math.abs(b)) * 100), 0)} vs. anterior`);
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-      <Section title={`Resultado — ${PERIOD_LABEL[period].toLowerCase()}`} description={`${formatDate(p.from, app.tz)} a ${formatDate(p.to, app.tz)}`} actions={<Button asChild size="sm" variant="ghost"><a href={`/api/export/resultado?periodo=${period}`}><Download /> CSV</a></Button>} flush>
+      <Section title={`Resultado — ${PERIOD_LABEL[period].toLowerCase()}`} description={`${formatDate(p.from, app.tz)} a ${formatDate(p.to, app.tz)}`} actions={<Button asChild size="sm" variant="ghost"><DownloadLink href={`/api/export/resultado?periodo=${period}`}><Download /> CSV</DownloadLink></Button>} flush>
         <table className="w-full">
           <tbody>
             <Row label="Receita de vendas" cents={pl.revenueCents} sub={delta(pl.revenueCents, prev?.revenueCents)} hint="Vendas fechadas (devoluções já descontadas)" />
@@ -245,7 +246,7 @@ async function StockTab({ app }: { app: App }) {
   const t = await turnover(app.ctx, resolvePeriod("quarter", app.tz), inv.ownedCostCents);
   return (
     <div className="grid gap-5 xl:grid-cols-2">
-      <Section title="Patrimônio em estoque" actions={<Button asChild size="sm" variant="ghost"><a href="/api/export/estoque"><Download /> CSV</a></Button>}>
+      <Section title="Patrimônio em estoque" actions={<Button asChild size="sm" variant="ghost"><DownloadLink href="/api/export/estoque"><Download /> CSV</DownloadLink></Button>}>
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between">
             <dt className="text-ink-3">Custo investido (próprio)</dt>
@@ -372,7 +373,7 @@ async function CashTab({ app, p, period }: { app: App; p: ReturnType<typeof reso
   ).sort((a, b) => b[1].in + b[1].out - (a[1].in + a[1].out));
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-      <Section title={`Entradas e saídas — ${PERIOD_LABEL[period].toLowerCase()}`} actions={<Button asChild size="sm" variant="ghost"><a href={`/api/export/movimentos?periodo=${period}`}><Download /> CSV</a></Button>} flush>
+      <Section title={`Entradas e saídas — ${PERIOD_LABEL[period].toLowerCase()}`} actions={<Button asChild size="sm" variant="ghost"><DownloadLink href={`/api/export/movimentos?periodo=${period}`}><Download /> CSV</DownloadLink></Button>} flush>
         <Table>
           <thead>
             <tr>

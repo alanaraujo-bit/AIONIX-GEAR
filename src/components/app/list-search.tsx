@@ -15,7 +15,10 @@ export function ListSearch({ placeholder, tabs, tabParam = "situacao", extra }: 
   const update = React.useCallback(
     (patch: Record<string, string | null>) => {
       const n = new URLSearchParams(sp.toString());
-      for (const [k, v] of Object.entries(patch)) (v ? n.set(k, v) : n.delete(k));
+      for (const [k, v] of Object.entries(patch)) {
+        if (v) n.set(k, v);
+        else n.delete(k);
+      }
       n.delete("page");
       router.replace(`${pathname}?${n.toString()}`, { scroll: false });
     },

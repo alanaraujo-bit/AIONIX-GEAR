@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { TriangleAlert } from "lucide-react";
 import { EmptyState } from "@/components/ui/layout";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,9 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
             <Button variant="primary" onClick={reset}>
               Tentar de novo
             </Button>
-            <Button onClick={() => (window.location.href = "/")}>Ir para o início</Button>
+            <Button asChild>
+              <Link href="/">Ir para o início</Link>
+            </Button>
           </>
         }
       >

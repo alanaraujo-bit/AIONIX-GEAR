@@ -189,6 +189,7 @@ async function main() {
   await startCount(ctx, { name: "Contagem da gaveta de memórias", locationId: gaveta.id });
 
   void p1;
+  void p2;
   void p3;
   void p4;
   void p5;

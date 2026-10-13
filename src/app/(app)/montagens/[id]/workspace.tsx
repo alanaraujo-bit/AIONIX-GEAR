@@ -87,50 +87,6 @@ export function BuildWorkspace({
     if (r.ok) router.refresh();
   };
 
-  const SlotCard = ({ kind, label, optional }: { kind: string; label: string; optional?: boolean }) => {
-    const parts = kind === "__other" ? others : d.parts.filter((p) => p.kind === kind);
-    return (
-      <div className={cn("rounded-[10px] border p-3", parts.length ? "border-line bg-surface" : "border-dashed border-line-strong bg-surface-2/40")}>
-        <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-[0.75rem] font-medium text-ink-3">
-            {label}
-            {optional && " (opcional)"}
-          </span>
-          {open && (
-            <button onClick={() => setPicker(kind === "__other" ? "OTHER" : kind)} className="text-[0.75rem] font-medium text-accent-text hover:underline">
-              {parts.length ? "+ outra" : "+ escolher"}
-            </button>
-          )}
-        </div>
-        {parts.length === 0 ? (
-          <p className="text-sm text-ink-3">—</p>
-        ) : (
-          parts.map((p) => (
-            <div key={p.partId} className="group flex items-start justify-between gap-2 py-0.5">
-              <Link href={`/estoque/${p.itemId}`} className="min-w-0 text-sm text-ink no-underline hover:text-accent-text">
-                <span className="block truncate">
-                  {p.quantity > 1 ? `${p.quantity}× ` : ""}
-                  {p.title}
-                </span>
-                <span className="code block text-ink-3">
-                  {p.code}
-                  {p.ownership !== "OWNED" ? ` · ${OWNERSHIP_LABEL[p.ownership]}` : ""}
-                </span>
-              </Link>
-              <div className="flex shrink-0 items-center gap-1">
-                {seeCost && <Money cents={p.costCents} className="text-[0.8125rem] text-ink-2" unknown="?" />}
-                {open && (
-                  <button onClick={() => removePart(p)} className="rounded p-1 text-ink-3 hover:bg-surface-2 hover:text-negative" aria-label={`Retirar ${p.title}`}>
-                    <Trash2 className="size-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -191,11 +147,11 @@ export function BuildWorkspace({
         >
           <div className="grid gap-3 sm:grid-cols-2">
             {SLOTS.map((s) => (
-              <SlotCard key={s.kind} {...s} />
+              <SlotCard key={s.kind} {...s} parts={d.parts.filter((p) => p.kind === s.kind)} open={open} seeCost={seeCost} onPick={setPicker} onRemove={removePart} />
             ))}
           </div>
           <div className="mt-3">
-            <SlotCard kind="__other" label="Outros e insumos (pasta térmica, cabos, fans…)" optional />
+            <SlotCard kind="__other" label="Outros e insumos (pasta térmica, cabos, fans…)" optional parts={others} open={open} seeCost={seeCost} onPick={setPicker} onRemove={removePart} />
           </div>
         </Section>
 
@@ -380,6 +336,68 @@ export function BuildWorkspace({
           }}
         />
       </Sheet>
+    </div>
+  );
+}
+
+function SlotCard({
+kind,
+label,
+optional,
+parts,
+open,
+seeCost,
+onPick,
+onRemove,
+}: {
+kind: string;
+label: string;
+optional?: boolean;
+parts: BuildDetail["parts"];
+open: boolean;
+seeCost: boolean;
+onPick: (kind: string) => void;
+onRemove: (p: BuildDetail["parts"][number]) => void;
+}) {
+  return (
+    <div className={cn("rounded-[10px] border p-3", parts.length ? "border-line bg-surface" : "border-dashed border-line-strong bg-surface-2/40")}>
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-[0.75rem] font-medium text-ink-3">
+          {label}
+          {optional && " (opcional)"}
+        </span>
+        {open && (
+          <button onClick={() => onPick(kind === "__other" ? "OTHER" : kind)} className="text-[0.75rem] font-medium text-accent-text hover:underline">
+            {parts.length ? "+ outra" : "+ escolher"}
+          </button>
+        )}
+      </div>
+      {parts.length === 0 ? (
+        <p className="text-sm text-ink-3">—</p>
+      ) : (
+        parts.map((p) => (
+          <div key={p.partId} className="group flex items-start justify-between gap-2 py-0.5">
+            <Link href={`/estoque/${p.itemId}`} className="min-w-0 text-sm text-ink no-underline hover:text-accent-text">
+              <span className="block truncate">
+                {p.quantity > 1 ? `${p.quantity}× ` : ""}
+                {p.title}
+              </span>
+              <span className="code block text-ink-3">
+                {p.code}
+                {p.ownership !== "OWNED" ? ` · ${OWNERSHIP_LABEL[p.ownership]}` : ""}
+              </span>
+            </Link>
+            <div className="flex shrink-0 items-center gap-1">
+              {seeCost && <Money cents={p.costCents} className="text-[0.8125rem] text-ink-2" unknown="?" />}
+              {open && (
+                <button onClick={() => onRemove(p)} className="rounded p-1 text-ink-3 hover:bg-surface-2 hover:text-negative" aria-label={`Retirar ${p.title}`}>
+                  <Trash2 className="size-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }

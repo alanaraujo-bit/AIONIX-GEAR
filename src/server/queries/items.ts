@@ -47,7 +47,12 @@ export async function listItems(ctx: Ctx, f: ItemListFilters) {
     let grew = true;
     while (grew) {
       grew = false;
-      for (const l of locs) if (l.parentId && ids.has(l.parentId) && !ids.has(l.id)) (ids.add(l.id), (grew = true));
+      for (const l of locs) {
+        if (l.parentId && ids.has(l.parentId) && !ids.has(l.id)) {
+          ids.add(l.id);
+          grew = true;
+        }
+      }
     }
     where.locationId = { in: [...ids] };
   }

@@ -4,7 +4,7 @@ import { requireApp } from "@/server/session";
 import { prisma } from "@/server/db";
 import { contactOptions } from "@/server/queries/common";
 import { PageHeader } from "@/components/ui/layout";
-import { toDateInput, todayInput } from "@/lib/dates";
+import { toDateInput, todayInput, daysAgoDate } from "@/lib/dates";
 import { Pipeline } from "./pipeline";
 
 export const metadata: Metadata = { title: "Negociações" };
@@ -13,7 +13,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Promis
   const app = await requireApp();
   if (!(app.can("sales.manage") || app.can("trades.manage") || app.can("purchases.manage"))) redirect("/sem-permissao");
   const sp = await searchParams;
-  const since = new Date(Date.now() - 45 * 86_400_000);
+  const since = daysAgoDate(45);
   const [opps, contacts, items] = await Promise.all([
     prisma.opportunity.findMany({
       where: { orgId: app.ctx.orgId, OR: [{ stage: { notIn: ["WON", "LOST"] } }, { closedAt: { gte: since } }] },

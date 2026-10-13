@@ -52,9 +52,9 @@ export function ContactPicker({
           <button
             id={id}
             type="button"
-            aria-invalid={invalid || undefined}
+            data-invalid={invalid || undefined}
             className={cn(
-              "flex h-10 w-full items-center gap-2 rounded-[var(--radius-ctl)] border border-line-strong bg-surface px-3 text-left text-[0.9375rem] transition-colors hover:border-ink-3 focus:border-accent focus:outline-none focus:shadow-[var(--focus)] aria-[invalid=true]:border-negative",
+              "flex h-10 w-full items-center gap-2 rounded-[var(--radius-ctl)] border border-line-strong bg-surface px-3 text-left text-[0.9375rem] transition-colors hover:border-ink-3 focus:border-accent focus:outline-none focus:shadow-[var(--focus)] data-[invalid]:border-negative",
               !selected && "text-ink-3",
             )}
           >

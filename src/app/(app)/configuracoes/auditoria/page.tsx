@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DownloadLink } from "@/components/ui/download-link";
 import Link from "next/link";
 import { requirePage } from "@/server/session";
 import { prisma } from "@/server/db";
@@ -20,7 +21,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   const [rows, total] = await Promise.all([prisma.auditLog.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * 100, take: 100 }), prisma.auditLog.count({ where })]);
   const names = await userNames(rows.map((r) => r.userId));
   return (
-    <Section title="Registro de auditoria" description="Toda operação sensível fica registrada: quem, quando e o quê. Não pode ser editado." actions={<Button asChild size="sm" variant="ghost"><a href="/api/export/auditoria">Exportar CSV</a></Button>} flush>
+    <Section title="Registro de auditoria" description="Toda operação sensível fica registrada: quem, quando e o quê. Não pode ser editado." actions={<Button asChild size="sm" variant="ghost"><DownloadLink href="/api/export/auditoria">Exportar CSV</DownloadLink></Button>} flush>
       <div className="px-4 pt-3 sm:px-5">
         <ListSearch placeholder="Buscar no registro…" />
       </div>

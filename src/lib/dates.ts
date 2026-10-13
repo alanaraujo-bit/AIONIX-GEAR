@@ -179,3 +179,12 @@ export function formatRelative(date: Date | string | null | undefined, now = new
 export function daysBetween(a: Date | string, b: Date | string = new Date()) {
   return Math.floor((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000);
 }
+
+/** Instante de N dias atrás (para filtros de consulta). */
+export function daysAgoDate(n: number) {
+  return new Date(Date.now() - n * 86_400_000);
+}
+
+export function isWithinDays(date: Date | string | null | undefined, n: number) {
+  return !!date && Date.now() - new Date(date).getTime() < n * 86_400_000;
+}

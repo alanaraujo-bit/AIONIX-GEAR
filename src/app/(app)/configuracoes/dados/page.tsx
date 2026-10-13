@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DownloadLink } from "@/components/ui/download-link";
 import Link from "next/link";
 import { Download, Upload, DatabaseBackup, ShieldCheck } from "lucide-react";
 import { requireApp } from "@/server/session";
@@ -28,9 +29,9 @@ export default async function DataPage() {
         <Section title="Backup completo" description="Um arquivo JSON com todos os registros da empresa (estoque, histórico, vendas, catiras, financeiro). Guarde em local seguro — contém dados de clientes.">
           <div className="flex flex-wrap items-center gap-3">
             <Button asChild variant="primary">
-              <a href="/api/export/backup">
+              <DownloadLink href="/api/export/backup">
                 <DatabaseBackup /> Baixar backup (JSON)
-              </a>
+              </DownloadLink>
             </Button>
             <span className="text-[0.8125rem] text-ink-3">Fotos e documentos não vão no JSON; eles ficam no banco de dados e entram no backup do servidor.</span>
           </div>
@@ -43,10 +44,10 @@ export default async function DataPage() {
         <ul className="grid gap-2 sm:grid-cols-2">
           {EXPORTS.filter((e) => app.can(e.perm)).map((e) => (
             <li key={e.kind}>
-              <a href={`/api/export/${e.kind}`} className="flex items-center justify-between gap-3 rounded-[10px] border border-line px-3 py-2.5 text-sm text-ink no-underline hover:border-line-strong hover:bg-surface-2/60">
+              <DownloadLink href={`/api/export/${e.kind}`} className="flex items-center justify-between gap-3 rounded-[10px] border border-line px-3 py-2.5 text-sm text-ink no-underline hover:border-line-strong hover:bg-surface-2/60">
                 {e.label}
                 <Download className="size-4 text-ink-3" />
-              </a>
+              </DownloadLink>
             </li>
           ))}
         </ul>

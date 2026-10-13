@@ -234,7 +234,7 @@ function CostSheet({ open, onClose, item, accounts, contacts }: { open: boolean;
             variant="primary"
             loading={pending}
             disabled={!amount || description.trim().length < 2}
-            onClick={(e) => run((key) => ({ idempotencyKey: key, itemId: item.id, kind: kind as never, amountCents: amount!, description, payment, accountId, method: method as never, contactId }))}
+            onClick={() => run((key) => ({ idempotencyKey: key, itemId: item.id, kind: kind as never, amountCents: amount!, description, payment, accountId, method: method as never, contactId }))}
           >
             Adicionar {amount ? formatBRL(amount) : ""}
           </Button>

@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Logo, LogoMark } from "./logo";
-import { NAV, QUICK_ACTIONS, type NavItem, type QuickAction } from "./nav";
+import type { NavItem, QuickAction } from "./nav";
 import { NAV_ICONS, QUICK_ICONS } from "./icons";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/menu";
 import { Sheet } from "@/components/ui/dialog";

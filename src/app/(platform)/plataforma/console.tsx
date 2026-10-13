@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet } from "@/components/ui/dialog";
 import { Field, Input, Checkbox } from "@/components/ui/field";
 import { confirmDialog } from "@/components/ui/confirm";
-import { formatRelative } from "@/lib/dates";
+import { formatRelative, isWithinDays } from "@/lib/dates";
 import { createOrgAction, setOrgStateAction, ownerResetLinkAction } from "./actions";
 
 type Org = {
@@ -38,7 +38,7 @@ export function PlatformConsole({ orgs, origin }: { orgs: Org[]; origin: string 
       <div className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-box)] border border-line bg-line sm:grid-cols-4 [&>*]:bg-surface">
         {[
           ["Empresas", orgs.filter((o) => !o.isDemo).length],
-          ["Ativas (30 dias)", orgs.filter((o) => o.lastActivity && Date.now() - new Date(o.lastActivity).getTime() < 30 * 86_400_000).length],
+          ["Ativas (30 dias)", orgs.filter((o) => isWithinDays(o.lastActivity, 30)).length],
           ["Usuários", orgs.reduce((a, o) => a + o.members, 0)],
           ["Itens cadastrados", orgs.reduce((a, o) => a + o.items, 0)],
         ].map(([l, v]) => (
