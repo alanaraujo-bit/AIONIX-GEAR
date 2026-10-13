@@ -181,7 +181,7 @@ export async function getSaleDetail(ctx: Ctx, id: string) {
     tradeIns: tradeIns.map((t) => ({ ...t, unitCostCents: seeCost ? t.unitCostCents : null })),
     attachments: attachments.map((a) => ({ id: a.id, fileName: a.fileName, contentType: a.contentType, kind: a.kind, isCover: a.isCover })),
     history: audit.map((a) => ({ id: a.id, summary: a.summary, at: a.createdAt, user: a.userId ? names.get(a.userId) ?? null : null })),
-    notes: notes.map((n) => ({ id: n.id, body: n.body, at: n.createdAt, user: n.userId ? names.get(n.userId) ?? null : null })),
+    noteList: notes.map((n) => ({ id: n.id, body: n.body, at: n.createdAt, user: n.userId ? names.get(n.userId) ?? null : null })),
   };
 }
 
