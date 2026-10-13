@@ -3,6 +3,7 @@ import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConfirmHost } from "@/components/ui/confirm";
+import { ServiceWorkerRegister } from "@/components/app/sw-register";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 import "./globals.css";
 
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <TooltipProvider>{children}</TooltipProvider>
         <ConfirmHost />
+        <ServiceWorkerRegister />
         <Toaster
           position="top-center"
           closeButton

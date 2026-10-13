@@ -78,6 +78,15 @@ function useOnline() {
   return online;
 }
 
+/** Sair: apaga as páginas guardadas offline neste aparelho antes de encerrar a sessão. */
+async function logout() {
+  try {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((k) => caches.delete(k)));
+  } catch {}
+  await logoutAction();
+}
+
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -246,11 +255,9 @@ export function AppShell({ user, org, role, orgs, nav, quick, children }: ShellP
         </nav>
         <div className="mt-4 border-t border-line pt-4">
           {orgs.length > 1 && <OrgSwitchList orgs={orgs} current={org.id} />}
-          <form action={logoutAction}>
-            <button className="flex h-11 w-full items-center gap-3 rounded-[8px] px-1 text-[0.9375rem] text-negative">
-              <LogOut className="size-5" /> Sair
-            </button>
-          </form>
+          <button onClick={() => logout()} className="flex h-11 w-full items-center gap-3 rounded-[8px] px-1 text-[0.9375rem] text-negative">
+            <LogOut className="size-5" /> Sair
+          </button>
         </div>
       </Sheet>
 
@@ -423,7 +430,7 @@ function OrgMenu({ org, orgs, role, user, collapsed }: { org: ShellProps["org"];
         )}
         <MenuSeparator />
         <MenuItem onSelect={() => router.push("/configuracoes/conta")}>Minha conta</MenuItem>
-        <MenuItem danger onSelect={() => logoutAction()}>
+        <MenuItem danger onSelect={() => logout()}>
           <LogOut /> Sair
         </MenuItem>
       </MenuContent>
