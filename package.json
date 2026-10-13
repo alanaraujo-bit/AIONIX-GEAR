@@ -13,7 +13,8 @@
     "db:deploy": "prisma migrate deploy",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "admin": "tsx scripts/admin.ts"
+    "admin": "tsx scripts/admin.ts",
+    "seed:demo": "tsx scripts/seed-demo.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

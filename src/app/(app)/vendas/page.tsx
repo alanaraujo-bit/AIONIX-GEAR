@@ -73,8 +73,8 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
                     <Td>
                       <Link href={`/vendas/${r.id}`} className="block no-underline">
                         <span className="block max-w-[420px] truncate text-sm font-medium text-ink hover:text-accent-text">{r.description}</span>
-                        <span className="code text-ink-3">
-                          {r.code} · {formatDate(r.date, app.tz)}
+                        <span className="text-[0.8125rem] text-ink-3">
+                          <span className="code">{r.code}</span> · {formatDate(r.date, app.tz)}
                         </span>
                       </Link>
                     </Td>

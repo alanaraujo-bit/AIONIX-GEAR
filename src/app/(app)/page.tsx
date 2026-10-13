@@ -29,7 +29,7 @@ function Delta({ now, prev, invert }: { now: number; prev: number | null | undef
   const good = invert ? pct < 0 : pct > 0;
   return (
     <span className={cn("num text-[0.75rem]", Math.abs(pct) < 0.5 ? "text-ink-3" : good ? "text-positive" : "text-negative")}>
-      {pct > 0 ? "▲" : pct < 0 ? "▼" : ""} {formatPct(Math.abs(pct), 0)} vs. período anterior
+      {pct > 0 ? "▲" : pct < 0 ? "▼" : ""} {formatPct(Math.abs(pct), 0)} vs. anterior
     </span>
   );
 }

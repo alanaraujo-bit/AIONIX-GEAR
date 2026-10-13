@@ -15,7 +15,7 @@ const plain = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximum
 
 export function formatBRL(cents: number | null | undefined, opts?: { signed?: boolean; compact?: boolean }): string {
   if (cents === null || cents === undefined) return "—";
-  const value = cents / 100;
+  const value = (cents === 0 ? 0 : cents) / 100; // evita "-R$ 0,00"
   const text = opts?.compact && Math.abs(value) >= 10_000 ? brlCompact.format(value) : brl.format(value);
   if (opts?.signed && cents > 0) return `+${text}`;
   return text;

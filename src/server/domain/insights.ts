@@ -171,7 +171,7 @@ export async function computeInsights(ctx: Ctx, settings: OrgSettings): Promise<
       SUM(CASE WHEN r."kind" = 'REVENUE' THEN r."amountCents" ELSE 0 END) AS revenue,
       SUM(CASE WHEN r."kind" = 'COGS' THEN r."amountCents" ELSE 0 END) AS cogs,
       COUNT(DISTINCT CASE WHEN r."kind" = 'REVENUE' THEN r."itemId" END) AS n,
-      AVG(CASE WHEN r."kind" = 'REVENUE' THEN EXTRACT(EPOCH FROM (r."date" - i."acquiredAt")) / 86400 END)::float AS avg_days
+      AVG(CASE WHEN r."kind" = 'REVENUE' THEN GREATEST(0, EXTRACT(EPOCH FROM (r."date" - i."acquiredAt")) / 86400) END)::float AS avg_days
     FROM "ResultEntry" r JOIN "Item" i ON i."id" = r."itemId" JOIN "Product" p ON p."id" = i."productId" JOIN "Category" c ON c."id" = p."categoryId"
     WHERE r."orgId" = ${ctx.orgId} AND r."date" >= ${since90} AND r."kind" IN ('REVENUE','COGS') AND r."costStatus" IS DISTINCT FROM 'UNKNOWN'
     GROUP BY c."name" HAVING SUM(CASE WHEN r."kind" = 'REVENUE' THEN r."amountCents" ELSE 0 END) > 0`;

@@ -74,8 +74,8 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
                   <Td>
                     <Link href={`/compras/${r.id}`} className="block no-underline">
                       <span className="block max-w-[420px] truncate text-sm font-medium text-ink hover:text-accent-text">{r.description || "Sem itens"}</span>
-                      <span className="code text-ink-3">
-                        {r.code} · {formatDate(r.date, app.tz)} · {r.units} un.
+                      <span className="text-[0.8125rem] text-ink-3">
+                        <span className="code">{r.code}</span> · {formatDate(r.date, app.tz)} · {r.units} un.
                       </span>
                     </Link>
                   </Td>

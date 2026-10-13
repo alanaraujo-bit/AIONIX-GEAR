@@ -50,7 +50,7 @@ export default async function InsightsPage() {
                   </div>
                 </div>
                 {i.numbers.length > 0 && (
-                  <dl className="mt-3 grid gap-x-4 gap-y-1 rounded-[8px] bg-surface-2/70 px-3 py-2 text-[0.8125rem] sm:grid-cols-2">
+                  <dl className={cn("mt-3 grid gap-x-4 gap-y-1 rounded-[8px] bg-surface-2/70 px-3 py-2 text-[0.8125rem]", i.numbers.every((n) => n.value.length <= 16) && "sm:grid-cols-2")}>
                     {i.numbers.map((n) => (
                       <div key={n.label} className="flex justify-between gap-3">
                         <dt className="text-ink-3">{n.label}</dt>

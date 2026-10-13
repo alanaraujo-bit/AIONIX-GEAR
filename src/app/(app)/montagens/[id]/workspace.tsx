@@ -135,7 +135,7 @@ export function BuildWorkspace({
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="flex min-w-0 flex-col gap-5">
-        <div className="surface flex flex-wrap items-center gap-2 p-3">
+        <div className="surface flex flex-col gap-3 p-3 2xl:flex-row 2xl:items-center">
           <ol className="flex flex-1 flex-wrap items-center gap-1">
             {STAGES.map((s, i) => (
               <li key={s.v} className="flex items-center gap-1">
@@ -154,7 +154,7 @@ export function BuildWorkspace({
               </li>
             ))}
           </ol>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 border-t border-line pt-3 2xl:border-0 2xl:pt-0">
             <Button size="sm" variant="ghost" asChild>
               <Link href={`/imprimir/montagem/${b.id}`} target="_blank">
                 <Printer /> Ficha técnica
@@ -176,7 +176,7 @@ export function BuildWorkspace({
                 >
                   <XCircle /> Cancelar
                 </Button>
-                <Button size="sm" variant="primary" disabled={!d.parts.length} onClick={() => setCompleteOpen(true)}>
+                <Button size="sm" variant="primary" className="ml-auto" disabled={!d.parts.length} onClick={() => setCompleteOpen(true)}>
                   <CheckCircle2 /> Concluir
                 </Button>
               </>
@@ -189,7 +189,7 @@ export function BuildWorkspace({
           description={open ? "Escolher uma peça a reserva: ela sai do estoque disponível até a montagem terminar ou ser cancelada." : undefined}
           actions={open ? <Button size="sm" onClick={() => setPicker("ANY")}><Plus /> Adicionar peça</Button> : undefined}
         >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2">
             {SLOTS.map((s) => (
               <SlotCard key={s.kind} {...s} />
             ))}

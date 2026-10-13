@@ -175,7 +175,7 @@ export async function nextActions(ctx: Ctx, settings: OrgSettings): Promise<Next
   }
   if (hasPerm(ctx, "sales.manage") || hasPerm(ctx, "trades.manage")) {
     const due = await prisma.opportunity.count({ where: { orgId: ctx.orgId, stage: { notIn: ["WON", "LOST"] }, nextActionAt: { lte: new Date(Date.now() + 86_400_000) } } });
-    if (due) out.push({ key: "deals", tone: "warning", title: `${due} negociação${due > 1 ? "ões" : ""} com retorno para hoje`, detail: "Responda antes que o interessado esfrie.", href: "/negociacoes", count: due });
+    if (due) out.push({ key: "deals", tone: "warning", title: `${due} ${due > 1 ? "negociações" : "negociação"} com retorno para hoje`, detail: "Responda antes que o interessado esfrie.", href: "/negociacoes", count: due });
   }
   if (hasPerm(ctx, "trades.manage")) {
     const openTrades = await prisma.trade.count({ where: { orgId: ctx.orgId, status: "NEGOTIATING" } });
@@ -183,7 +183,7 @@ export async function nextActions(ctx: Ctx, settings: OrgSettings): Promise<Next
   }
   if (hasPerm(ctx, "builds.manage")) {
     const builds = await prisma.build.count({ where: { orgId: ctx.orgId, status: { in: ["PLANNING", "ASSEMBLING", "TESTING"] } } });
-    if (builds) out.push({ key: "builds", tone: "info", title: `${builds} montagem${builds > 1 ? "ns" : ""} em andamento`, detail: "Peças reservadas não podem ser vendidas avulsas.", href: "/montagens", count: builds });
+    if (builds) out.push({ key: "builds", tone: "info", title: `${builds} ${builds > 1 ? "montagens" : "montagem"} em andamento`, detail: "Peças reservadas não podem ser vendidas avulsas.", href: "/montagens", count: builds });
   }
   if (hasPerm(ctx, "inventory.view")) {
     const inspection = await prisma.item.count({ where: { orgId: ctx.orgId, status: { in: ["INSPECTION", "RETURNED"] } } });

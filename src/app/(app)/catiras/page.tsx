@@ -70,8 +70,8 @@ export default async function TradesPage({ searchParams }: { searchParams: Promi
                   <Td>
                     <Link href={`/catiras/${r.id}`} className="block no-underline">
                       <span className="block max-w-[380px] truncate text-sm font-medium text-ink hover:text-accent-text">{r.title}</span>
-                      <span className="code text-ink-3">
-                        {r.code} · {formatDate(r.date, app.tz)}
+                      <span className="text-[0.8125rem] text-ink-3">
+                        <span className="code">{r.code}</span> · {formatDate(r.date, app.tz)}
                       </span>
                     </Link>
                   </Td>

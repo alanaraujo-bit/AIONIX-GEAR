@@ -68,8 +68,8 @@ export default async function BuildsPage({ searchParams }: { searchParams: Promi
                   <Td>
                     <Link href={`/montagens/${r.id}`} className="block no-underline">
                       <span className="block text-sm font-medium text-ink hover:text-accent-text">{r.name}</span>
-                      <span className="code text-ink-3">
-                        {r.code} · {r.purpose === "CUSTOMER_ORDER" ? `encomenda${r.contact ? ` de ${r.contact}` : ""}` : "para venda"} · {formatRelative(r.updatedAt)}
+                      <span className="text-[0.8125rem] text-ink-3">
+                        <span className="code">{r.code}</span> · {r.purpose === "CUSTOMER_ORDER" ? `encomenda${r.contact ? ` de ${r.contact}` : ""}` : "para venda"} · {formatRelative(r.updatedAt)}
                       </span>
                     </Link>
                   </Td>
