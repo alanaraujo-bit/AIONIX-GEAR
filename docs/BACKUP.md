@@ -11,7 +11,7 @@ Há duas camadas de cópia, com finalidades diferentes.
 
 ## 1. Cópia do banco inteiro
 
-Pré-requisito: cliente PostgreSQL 16+ (`pg_dump`, `pg_restore`). A URL fica em uma variável de ambiente e **nunca** vai para arquivo versionado.
+Pré-requisito: cliente PostgreSQL (`pg_dump`, `pg_restore`, `psql`) da **mesma versão principal do servidor ou mais nova**. Confira a do servidor com `psql "$DATABASE_URL" -c 'show server_version'`. A URL fica em uma variável de ambiente e **nunca** vai para arquivo versionado.
 
 ```bash
 # Formato custom (comprimido, permite restauração seletiva)
@@ -35,7 +35,9 @@ pg_restore --list aionix-gear-AAAAMMDD-HHMM.dump | head
 ### Para um banco novo (recomendado: nunca restaure por cima do banco em uso sem antes copiá-lo)
 
 ```bash
-createdb "$NOVO_BANCO_URL"            # ou crie um Postgres novo no Railway
+# Crie o banco vazio (ou crie um Postgres novo no Railway e use a URL dele)
+psql "$ADMIN_URL" -c 'CREATE DATABASE aionix_restore'     # ADMIN_URL = URL do servidor apontando para o banco "postgres"
+NOVO_BANCO_URL="postgresql://USUARIO:SENHA@HOST:PORTA/aionix_restore"
 pg_restore --dbname "$NOVO_BANCO_URL" --no-owner --no-privileges --exit-on-error aionix-gear-AAAAMMDD-HHMM.dump
 DATABASE_URL="$NOVO_BANCO_URL" npx prisma migrate status   # deve dizer "Database schema is up to date"
 ```

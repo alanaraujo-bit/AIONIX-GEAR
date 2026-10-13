@@ -50,6 +50,8 @@ Todos os comandos abaixo foram rodados nesta data, na máquina de desenvolviment
 - Empresa B não abre registro nem exportação da empresa A.
 - Navegação e ações rápidas no celular.
 
+**Backup/restauração:** o procedimento de [BACKUP.md](BACKUP.md) está documentado, mas **não foi exercitado**. Esta máquina não tem `pg_dump`/`pg_restore`. Faça o primeiro teste de restauração logo após publicar. A exportação JSON/CSV pela tela é coberta pelo E2E de isolamento.
+
 Também foi feita QA visual manual (claro, escuro e celular) das telas principais, com os dados de demonstração (`npm run seed:demo`).
 
 ## O que está pronto
@@ -120,5 +122,8 @@ Também foi feita QA visual manual (claro, escuro e celular) das telas principai
    - (a) aplicar as migrações nesse banco: `prisma migrate deploy`;
    - (b) criar o projeto `aionix-gear` na Vercel (time `aionixdev`) com `DATABASE_URL`, `DATABASE_POOL_MAX` e `APP_URL`;
    - (c) publicar;
-   - (d) gerar o link de primeiro acesso do Gabriel.
+   - (d) corrigir `APP_URL` para a URL final e publicar de novo;
+   - (e) gerar o link de primeiro acesso do Gabriel.
+
+   Não há repositório remoto nem Vercel CLI instalada. O caminho sem GitHub, por `npx vercel@latest`, está em [OPERACAO.md](OPERACAO.md) §3.
    Tudo isso está descrito em [OPERACAO.md](OPERACAO.md). Nenhum desses passos usa serviço pago novo.

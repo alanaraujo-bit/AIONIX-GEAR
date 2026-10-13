@@ -55,10 +55,33 @@ Navegador (PWA) ──HTTPS──> Vercel (Next.js 16, funções Node)
 
 ### App (Vercel)
 
-1. Crie um projeto apontando para este repositório (framework Next.js, comando de build padrão).
-2. Cadastre as variáveis da seção 2 em *Production* e, se usar, *Preview* (com outro banco).
-3. Faça o deploy. `postinstall` gera o cliente Prisma. Migrações **não** rodam no build: rode o passo acima antes de publicar uma versão com migração nova.
-4. Confira que `/entrar` abre, que o login funciona e que *Relatórios › Verificação* mostra "Tudo confere.".
+Esta pasta ainda não tem repositório remoto. Há dois caminhos.
+
+**Caminho A, pela CLI** (sem GitHub):
+
+1. Vincule a pasta: `npx vercel@latest link`. Escolha o time `aionixdev` e crie o projeto `aionix-gear`.
+2. Cadastre as variáveis de produção, uma a uma. O valor é pedido de forma interativa e não fica no histórico:
+   - `npx vercel@latest env add DATABASE_URL production`
+   - o mesmo para `DATABASE_POOL_MAX` (ex.: `3`);
+   - o mesmo para `APP_URL` (provisório; corrigido no passo 4).
+3. Publique: `npx vercel@latest deploy --prod`. Anote a URL de produção.
+4. Ajuste `APP_URL` para essa URL (`npx vercel@latest env rm APP_URL production` e `env add` de novo) e publique outra vez. Isso é necessário porque os links de senha e convite usam `APP_URL`.
+
+**Caminho B, pelo GitHub:**
+
+1. Envie o repositório para o GitHub.
+2. Na Vercel: *Add New › Project* e importe o repositório.
+3. Cadastre as variáveis da seção 2 e publique.
+4. Ajuste `APP_URL` como no passo 4 acima.
+
+**Nos dois casos:**
+
+- `postinstall` gera o cliente Prisma.
+- Migrações **não** rodam no build. Rode `prisma migrate deploy` antes de publicar uma versão com migração nova.
+- Para conferir a publicação:
+  1. `/entrar` abre e o login funciona;
+  2. *Relatórios › Verificação* mostra "Tudo confere.".
+- Só depois de `APP_URL` correto rode o `create-org` da seção 4.
 
 **Região:** use a região de funções da Vercel mais próxima da região do Postgres no Railway. A latência entre elas pesa em cada página.
 
