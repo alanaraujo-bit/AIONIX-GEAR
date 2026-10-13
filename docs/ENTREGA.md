@@ -135,6 +135,8 @@ Também foi feita QA visual manual (claro, escuro e celular) das telas principai
 
 ## Pendente
 
+- **Administrador da plataforma:** a conta do Alan foi criada em produção, e o link de definição de senha foi entregue a ele (72 h, uso único). Pelo console `/plataforma`, ele cria a empresa do Gabriel em *Nova empresa*, que gera o link de primeiro acesso do dono, sem terminal.
+
 - **Primeiro acesso do Gabriel:** falta o e-mail dele. Com o e-mail, rode, com `DATABASE_URL` do banco `aionix_gear`:
 
   ```bash
