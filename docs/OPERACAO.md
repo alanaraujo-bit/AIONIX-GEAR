@@ -55,7 +55,7 @@ Navegador (PWA) ──HTTPS──> Vercel (Next.js 16, funções Node)
 
 ### App (Vercel)
 
-Esta pasta ainda não tem repositório remoto. Há dois caminhos.
+O código está em https://github.com/alanaraujo-bit/AIONIX-GEAR, e o projeto `aionixdev/aionix-gear` na Vercel está conectado a ele: **cada push na `main` publica em produção**, e cada push em outra branch gera uma prévia. As prévias não têm variáveis cadastradas e falham até você configurar `DATABASE_URL` no ambiente *Preview*, apontando para um banco separado, nunca o de produção. Os caminhos abaixo servem para recriar o projeto do zero.
 
 **Caminho A, pela CLI** (sem GitHub):
 

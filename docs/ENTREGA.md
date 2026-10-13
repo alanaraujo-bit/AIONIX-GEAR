@@ -145,4 +145,3 @@ Também foi feita QA visual manual (claro, escuro e celular) das telas principai
 
   O link impresso (72 h, uso único) leva direto à definição de senha em https://aionix-gear.vercel.app.
 - **Primeiro teste de restauração** do backup (ver [BACKUP.md](BACKUP.md)).
-- **Repositório remoto (opcional):** o deploy foi feito pela CLI. Conectar um repositório no GitHub ativa deploys automáticos.
