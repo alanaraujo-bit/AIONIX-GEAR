@@ -59,6 +59,7 @@ export async function saveContact(ctx: Ctx, raw: z.input<typeof contactSchema>) 
 
 /** Possíveis duplicados por telefone/WhatsApp/documento/nome. */
 export async function findDuplicateContacts(ctx: Ctx, input: { name?: string; phone?: string | null; document?: string | null; excludeId?: string }) {
+  if (!canManageContacts(ctx)) requirePerm(ctx, "contacts.manage");
   const phone = input.phone?.replace(/\D/g, "");
   const doc = input.document?.replace(/\D/g, "");
   const or = [];
