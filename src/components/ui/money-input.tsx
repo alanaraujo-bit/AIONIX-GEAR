@@ -52,8 +52,9 @@ export function MoneyInput({ value, onChange, id, name, placeholder = "0,00", di
           onChange(digits ? Number(digits) : null);
         }}
         onFocus={(e) => {
+          // Seleciona o valor: digitar substitui em vez de acrescentar dígitos ao valor anterior.
           const el = e.currentTarget;
-          requestAnimationFrame(() => el.setSelectionRange(el.value.length, el.value.length));
+          requestAnimationFrame(() => el.select());
         }}
       />
     </div>

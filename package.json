@@ -14,7 +14,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "admin": "tsx scripts/admin.ts",
-    "seed:demo": "tsx scripts/seed-demo.ts"
+    "seed:demo": "tsx scripts/seed-demo.ts",
+    "test:e2e": "next build && playwright test"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
