@@ -38,7 +38,7 @@ export type AppContext = {
 export const requireApp = cache(async (): Promise<AppContext> => {
   const session = await getSession();
   if (!session) redirect("/entrar");
-  if (!session.org || !session.role) redirect("/sem-empresa");
+  if (!session.org || !session.role) redirect(session.user.isPlatformAdmin ? "/plataforma" : "/sem-empresa");
   const ip = await clientIp();
   const ctx: Ctx = { orgId: session.org.id, userId: session.user.id, role: session.role, ip };
   return {
