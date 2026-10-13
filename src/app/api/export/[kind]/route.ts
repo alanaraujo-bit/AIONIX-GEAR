@@ -121,5 +121,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ kind: st
     });
   }
   name = `${kind}-${session.org.slug}-${stamp}.csv`;
+  await prisma.auditLog.create({ data: { orgId, userId: session.user.id, action: "data.export", summary: `Exportação CSV: ${kind}` } });
   return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${name}"`, "Cache-Control": "no-store" } });
 }
