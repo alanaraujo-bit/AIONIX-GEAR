@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+.local-pg/
+.local-pg.log
+.dev.log
+.dev-credentials
+.next/
+node_modules/
+src/generated/
+tests/e2e/.auth/
+test-results/
+playwright-report/
+*.dump

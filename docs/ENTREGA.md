@@ -1,6 +1,25 @@
 # Entrega — estado verificado (2026-10-12)
 
-Resumo: o produto está **construído e testado localmente** contra PostgreSQL real e no build de produção. A **publicação ainda não foi feita**: o banco de produção no Railway está parado e não foi possível religá-lo daqui sem autorização (ver "Bloqueios").
+Resumo: o produto está **publicado em https://aionix-gear.vercel.app** (Vercel, projeto `aionixdev/aionix-gear`), com banco PostgreSQL no Railway (projeto `aionix-gear`, banco `aionix_gear`). Também foi testado localmente contra PostgreSQL real e no build de produção.
+
+### Publicação (feita em 2026-10-13 UTC, com sua autorização)
+
+- **Banco:**
+  - O serviço Postgres do Railway foi religado. O deploy estava REMOVED e agora está SUCCESS.
+  - O banco padrão `railway` desse servidor **já tinha dados de uma versão anterior** do sistema: 29 tabelas em snake_case, 1 empresa, 1 usuário, 2 contas e controle `schema_migrations`.
+  - **Nada disso foi alterado ou apagado.** Para não sobrescrever nada, o sistema novo usa um banco separado, `aionix_gear`, no mesmo servidor, com a migração `20261012221525_init` aplicada.
+  - Se o banco antigo não for mais necessário, a remoção é decisão sua.
+- **App:**
+  - `vercel deploy --prod` → https://aionix-gear.vercel.app.
+  - Variáveis cadastradas como sensíveis: `DATABASE_URL`, `DATABASE_POOL_MAX=3`, `APP_URL`.
+  - O `.vercelignore` impede o envio de `.env`, do banco local e das credenciais de teste.
+- **Verificado em produção:**
+  - `/` e `/plataforma` redirecionam para o login, preservando o destino;
+  - `/entrar` responde 200;
+  - exportação sem sessão retorna 401;
+  - manifest e service worker respondem 200;
+  - HSTS, nosniff e X-Frame-Options estão presentes;
+  - um login com senha errada mostra "E-mail ou senha incorretos." e grava `LoginAttempt` no banco de produção, o que confirma app → banco.
 
 ## Evidências
 
@@ -114,16 +133,14 @@ Também foi feita QA visual manual (claro, escuro e celular) das telas principai
 - **Arquivos:** por padrão ficam no Postgres, até 4 MB por arquivo, com compressão de fotos no navegador. O Vercel Blob privado é opcional, via `BLOB_READ_WRITE_TOKEN`.
 - **Latência:** depende da distância entre a região das funções na Vercel e a do Postgres no Railway. Mantenha as duas na mesma região.
 
-## Bloqueios (ação necessária sua)
+## Pendente
 
-1. **Postgres de produção parado.** O projeto Railway `aionix-gear`, serviço `Postgres`, tem o último deploy com status **REMOVED** (conferido hoje). Religá-lo é uma ação em produção que não executei sem a sua autorização. Para destravar, clique em *Deploy* no serviço pelo painel do Railway ou rode:
-   `! railway redeploy -p b802d71f-c373-4f10-91dc-9be3f9459c59 -e production -s Postgres --from-source -y`
-2. **Autorização para publicar.** Com o banco ativo, os próximos passos são:
-   - (a) aplicar as migrações nesse banco: `prisma migrate deploy`;
-   - (b) criar o projeto `aionix-gear` na Vercel (time `aionixdev`) com `DATABASE_URL`, `DATABASE_POOL_MAX` e `APP_URL`;
-   - (c) publicar;
-   - (d) corrigir `APP_URL` para a URL final e publicar de novo;
-   - (e) gerar o link de primeiro acesso do Gabriel.
+- **Primeiro acesso do Gabriel:** falta o e-mail dele. Com o e-mail, rode, com `DATABASE_URL` do banco `aionix_gear`:
 
-   Não há repositório remoto nem Vercel CLI instalada. O caminho sem GitHub, por `npx vercel@latest`, está em [OPERACAO.md](OPERACAO.md) §3.
-   Tudo isso está descrito em [OPERACAO.md](OPERACAO.md). Nenhum desses passos usa serviço pago novo.
+  ```bash
+  npm run admin -- create-org --org "<nome da loja>" --email <e-mail> --name "Gabriel Airton"
+  ```
+
+  O link impresso (72 h, uso único) leva direto à definição de senha em https://aionix-gear.vercel.app.
+- **Primeiro teste de restauração** do backup (ver [BACKUP.md](BACKUP.md)).
+- **Repositório remoto (opcional):** o deploy foi feito pela CLI. Conectar um repositório no GitHub ativa deploys automáticos.
